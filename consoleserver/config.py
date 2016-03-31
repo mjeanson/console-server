@@ -27,7 +27,8 @@ default = dict(enabled=1,
                timeout=0,
                xonxoff=0,
                rtscts=0,
-               sshport=0)
+               sshport=0,
+               gpio="gpiox")
 
 
 config = None
@@ -48,6 +49,7 @@ rtscts = boolean(default=False)
 enabled = boolean(default=True)
 sshport = integer()
 logtype = integer()
+gpio = string()
 """.split('\n')
 
 default_config = """[GLOBAL]

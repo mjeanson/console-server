@@ -9,6 +9,7 @@ import logging
 _log = logging.getLogger(__name__)
 import os
 import os.path
+import time
 
 from twisted.internet import protocol
 import config
@@ -34,6 +35,7 @@ cs_help = [
     "sshport <portname> <nnnn>",
     "portmonitor <location>",
     "timeout <portname> <seconds>",
+    "power <portname> <on,off,reset,status>",
 ]
 
 port_cmds = [
@@ -53,6 +55,7 @@ port_cmds = [
     "sshport",
     "timeout",
     "reload",
+    "power",
 ]
 
 
@@ -215,6 +218,49 @@ class TSProtocol(protocol.Protocol):
 
     def process_portmonitor(self, location):
         config.server()["monitorpath"] = location
+
+    def process_power(self, cfg, cmd):
+        GPIO_ON = 0
+        GPIO_OFF = 1
+
+        gpio_path = "/sys/class/gpio/%s/value" % cfg['gpio']
+
+        if not os.path.isfile(gpio_path):
+            return ["Invalid gpio %s" % gpio_path]
+
+        with open(gpio_path, 'r+') as f:
+            value = int(f.readline())
+
+            if cmd == 'on':
+                if value == GPIO_ON:
+                    return ["Power is already on"]
+                else:
+                    f.write(str(GPIO_ON))
+                    return ["Power set to on"]
+
+            elif cmd == 'off':
+                if value == GPIO_OFF:
+                    return ["Power is already off"]
+                else:
+                    f.write(str(GPIO_OFF))
+                    return ["Power set to off"]
+
+            elif cmd == 'reset':
+                f.write(str(GPIO_OFF))
+                time.sleep(100)
+                f.seek(0)
+                f.write(str(GPIO_ON))
+                return ["Power was reseted"]
+
+            elif cmd == 'status':
+                if value == GPIO_ON:
+                    return ["Power is on"]
+                else:
+                    return ["Power is off"]
+
+            else:
+                return ["Invalid subcommand %s" % cmd]
+
 
     def process(self, line):
         # parse the line
